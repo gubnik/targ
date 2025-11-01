@@ -39,32 +39,26 @@ if(BUILD_EXAMPLES)
   endforeach()
 endif()
 
-# Installation
 include(GNUInstallDirs)
 
-# Install header files (*.hpp) from include/ preserving directory layout
 file(GLOB_RECURSE TARG_HEADERS RELATIVE ${CMAKE_CURRENT_SOURCE_DIR} ${TARG_INCLUDE_DIR}/*.hpp)
 
 if(INSTALL_HEADERS_TO_SYSTEM_DIR)
-  # Install to standard include dir under CMAKE_INSTALL_PREFIX
   install(FILES ${TARG_HEADERS}
           DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/targ
           COMPONENT dev)
 else()
-  # install to package-specific include layout
   install(DIRECTORY ${TARG_INCLUDE_DIR}/
           DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/targ
           FILES_MATCHING PATTERN "*.hpp"
           COMPONENT dev)
 endif()
 
-# Export target for find_package()
 install(TARGETS targ
   EXPORT targTargets
   INCLUDES DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/targ
 )
 
-# Create and install a config file for find_package
 include(CMakePackageConfigHelpers)
 write_basic_package_version_file(
   "${CMAKE_CURRENT_BINARY_DIR}/targConfigVersion.cmake"
@@ -90,7 +84,6 @@ install(FILES
   DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/targ
 )
 
-# Packaging metadata (optional)
 set(CPACK_PACKAGE_NAME "targ")
 set(CPACK_PACKAGE_VENDOR "ngg")
 set(CPACK_PACKAGE_DESCRIPTION_SUMMARY "Header-only minimal command-line arg parsing (ngg::targ)")
