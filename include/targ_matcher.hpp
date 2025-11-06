@@ -3,7 +3,6 @@
 #include "targ_definition.hpp"
 #include <array>
 #include <expected>
-#include <optional>
 #include <string_view>
 #include <tuple>
 #include <type_traits>
@@ -100,10 +99,7 @@ template <definition_instance... Definitions> struct match_table
                     slot = std::unexpected(arg_error::end_of_args);
                     return;
                 }
-                if constexpr (std::is_same_v<
-                                  std::invoke_result_t<decltype(handler),
-                                                       std::string_view>,
-                                  std::nullopt_t>)
+                if constexpr (std::is_same_v<decltype(handler), nullhandler_t>)
                 {
                     slot = std::unexpected(arg_error::no_valid_handler);
                     return;
@@ -136,10 +132,8 @@ template <definition_instance... Definitions> struct match_table
                         ret[idx] = std::unexpected(arg_error::end_of_args);
                         continue;
                     }
-                    if constexpr (std::is_same_v<
-                                      std::invoke_result_t<decltype(handler),
-                                                           std::string_view>,
-                                      std::nullopt_t>)
+                    if constexpr (std::is_same_v<decltype(handler),
+                                                 nullhandler_t>)
                     {
                         ret[idx] = std::unexpected(arg_error::no_valid_handler);
                         continue;
