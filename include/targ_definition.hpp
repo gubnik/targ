@@ -56,8 +56,8 @@ template <typename Tval, size_t N>
 consteval auto
 define_value (std::convertible_to<std::string_view> auto &&...names)
 {
-    return definition<Tval, N, nullhandler_t, sizeof...(names)>(
-        nullhandler, std::forward<decltype(names)>(names)...);
+    return definition<Tval, N, handler<Tval>, sizeof...(names)>(
+        handler<Tval>{}, std::forward<decltype(names)>(names)...);
 }
 
 template <typename Tval>

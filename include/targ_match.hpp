@@ -1,30 +1,12 @@
 #pragma once
 
 #include "targ_arg.hpp"
+#include "targ_handler.hpp"
 #include <optional>
 #include <tuple>
 
 namespace ngg::targ
 {
-
-template <typename Tval>
-constexpr auto handle_arg(std::string_view arg_str) noexcept
-    -> std::optional<Tval>;
-
-template <typename Tval>
-concept can_handle_arg = requires(std::string_view sv) {
-    { ngg::targ::handle_arg<Tval>(sv) } -> std::same_as<std::optional<Tval>>;
-};
-
-template <typename Tval> struct handler
-{
-    constexpr auto operator()(std::string_view to_match) noexcept
-        -> std::optional<Tval>
-    {
-        return targ::handle_arg<Tval>(to_match);
-    }
-};
-
 template <is_arg_type Arg>
 constexpr auto
 get_arg_handler (std::convertible_to<std::string_view> auto &&to_match) noexcept
@@ -32,7 +14,7 @@ get_arg_handler (std::convertible_to<std::string_view> auto &&to_match) noexcept
 {
     using str_type = std::remove_reference_t<decltype(to_match)>;
     if (Arg::arg_type::match(to_match) &&
-        can_handle_arg<typename Arg::value_type>)
+        default_arg_handler<typename Arg::value_type>)
     {
         return handler<typename Arg::value_type>{};
     }
