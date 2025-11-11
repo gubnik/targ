@@ -2,7 +2,9 @@
 
 #include "targ_definition.hpp"
 #include <array>
+#include <cassert>
 #include <expected>
+#include <print>
 #include <string_view>
 #include <tuple>
 #include <type_traits>
@@ -11,6 +13,85 @@
 namespace ngg::targ
 {
 
+template <definition_instance Def, size_t N> struct multiarg
+{
+    using value_type = typename Def::value_type;
+    struct enumerated
+    {
+        typename Def::expected expected;
+        size_t idx;
+    };
+
+    using inner_type = std::array<typename Def::expected, N>;
+    constexpr multiarg (inner_type &&vals) noexcept : values(vals)
+    {
+    }
+
+    multiarg &operator=(inner_type &&vals) noexcept
+    {
+        values        = std::move(vals);
+        current_index = 0;
+        return *this;
+    }
+
+    constexpr operator bool () const noexcept
+    {
+        return current_index < N;
+    }
+
+    constexpr auto next () noexcept
+    {
+        return enumerated{std::move(values[current_index++]), current_index};
+    }
+
+    constexpr auto begin ()
+    {
+        return iterator(*this, 0);
+    }
+
+    constexpr auto end ()
+    {
+        return iterator(*this, N);
+    }
+
+    struct iterator
+    {
+        constexpr iterator (const multiarg<Def, N> &parent, size_t idx)
+            : parent(&parent), index(idx)
+        {
+        }
+
+        constexpr auto
+        operator<=>(const iterator &other) const noexcept = default;
+
+        constexpr auto operator*() noexcept
+        {
+            assert(index < N);
+            return enumerated{parent->values[index], index};
+        }
+
+        constexpr auto operator++() noexcept
+        {
+            index++;
+            return *this;
+        }
+
+        constexpr auto operator++(int) noexcept
+        {
+            auto temp = *this;
+            ++(*this);
+            return temp;
+        }
+
+        const multiarg<Def, N> *parent;
+        size_t index;
+    };
+
+  private:
+    size_t current_index = 0;
+    inner_type values;
+};
+
 template <definition_instance... Definitions> struct match_table
 {
     consteval match_table (Definitions... defs) noexcept
@@ -18,35 +99,30 @@ template <definition_instance... Definitions> struct match_table
     {
     }
 
+    template <size_t I>
     constexpr auto match (std::string_view sv) const noexcept -> bool
     {
-        auto match_lambda = [&] (auto index, std::string_view sv) -> bool
-        {
-            constexpr size_t I     = decltype(index)::value;
-            const auto &curr_names = std::get<I>(names);
-            for (const auto &name : curr_names)
-                if (name == sv)
-                    return true;
-            return false;
-        };
+        const auto &curr_names = std::get<I>(names);
+        for (const auto &name : curr_names)
+            if (name == sv)
+                return true;
+        return false;
+    }
 
-        return [&]<std::size_t... Is>(std::index_sequence<Is...>) -> bool
-        {
-            bool result = false;
-            ((result || (result = match_lambda(
-                             std::integral_constant<std::size_t, Is>{}, sv),
-                         false)),
-             ...);
-            return result;
-        }(std::index_sequence_for<Definitions...>{});
+    template <typename Tval, size_t N>
+    static consteval auto filled_array (Tval default_value) noexcept
+    {
+        auto retval = std::array<Tval, N>{};
+        for (auto &it : retval)
+            it = default_value;
+        return retval;
     }
 
     template <typename D>
     using element_t = std::conditional_t<
         (D::consume_amount == 0), bool,
-        std::conditional_t<
-            (D::consume_amount == 1), typename D::expected,
-            std::array<typename D::expected, D::consume_amount>>>;
+        std::conditional_t<(D::consume_amount == 1), typename D::expected,
+                           multiarg<D, D::consume_amount>>>;
 
     [[nodiscard]]
     constexpr auto match_all (int argc, char **argv) const noexcept
@@ -65,8 +141,11 @@ template <definition_instance... Definitions> struct match_table
             }
             else
             {
-                return element_t<D>{
-                    std::unexpected(arg_error::no_value_provided)};
+                return filled_array<typename D::expected, D::consume_amount>(
+                    std::unexpected(arg_error::no_value_provided));
+                // return element_t<D>{
+                //     std::array<typename D::expected, D::consume_amount>{
+                //         std::unexpected(arg_error::no_value_provided)}};
             }
         };
         auto results = std::tuple<element_t<Definitions>...>{
@@ -81,7 +160,7 @@ template <definition_instance... Definitions> struct match_table
             const std::string_view arg{argv[i]};
             const size_t start_idx  = i;
             result_type &slot       = std::get<I>(results);
-            auto does_match_any_arg = match(arg);
+            auto does_match_any_arg = match<I>(arg);
             if (!does_match_any_arg)
             {
                 return;
@@ -108,7 +187,7 @@ template <definition_instance... Definitions> struct match_table
                 {
 
                     const std::string_view next{argv[++i]};
-                    if (auto opt_val = handler(arg); !opt_val)
+                    if (auto opt_val = handler(next); !opt_val)
                     {
                         slot = std::unexpected(arg_error::cannot_parse);
                         return;
@@ -122,8 +201,7 @@ template <definition_instance... Definitions> struct match_table
             }
             if constexpr (N > 1)
             {
-                std::array<typename definition_type::expected, N> ret = {
-                    std::unexpected(arg_error::no_value_provided)};
+                std::array<typename definition_type::expected, N> ret = {};
                 for (size_t idx = 0; idx < N; idx++)
                 {
                     auto handler = std::get<I>(handlers);
@@ -153,7 +231,12 @@ template <definition_instance... Definitions> struct match_table
                         }
                     }
                 }
-                slot = ret;
+                for (const auto &it : ret)
+                {
+                    if (it)
+                        std::println("ret : {}", *it);
+                }
+                slot = std::move(ret);
             }
         };
         for (size_t i = 0; i < argc; ++i)

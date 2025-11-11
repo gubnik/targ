@@ -4,6 +4,7 @@
 #include <array>
 #include <concepts>
 #include <expected>
+#include <format>
 #include <string_view>
 #include <type_traits>
 #include <utility>
@@ -19,7 +20,6 @@ enum class arg_error
     out_of_range,
     cannot_parse,
 };
-
 template <typename Tval, size_t ConsumeN, arg_handler_invokable<Tval> Thandler,
           size_t NamesSize>
 struct definition
@@ -41,7 +41,7 @@ struct definition
     const handler_type handler;
 };
 
-template <typename Tval, size_t N>
+template <typename Tval, size_t N = 1>
 consteval auto
 define_value (arg_handler_invokable<Tval> auto handler,
               std::convertible_to<std::string_view> auto &&...names)
@@ -52,7 +52,7 @@ define_value (arg_handler_invokable<Tval> auto handler,
         std::forward<decltype(names)>(names)...);
 }
 
-template <typename Tval, size_t N>
+template <typename Tval, size_t N = 1>
 consteval auto
 define_value (std::convertible_to<std::string_view> auto &&...names)
 {
@@ -85,3 +85,40 @@ template <typename T>
 concept definition_instance = is_definition_v<T>;
 
 } // namespace ngg::targ
+
+template <> struct std::formatter<ngg::targ::arg_error, char>
+{
+    static constexpr auto
+    arg_error_to_string (ngg::targ::arg_error err) noexcept -> std::string_view
+    {
+        switch (err)
+        {
+            using enum ngg::targ::arg_error;
+        case no_value_provided:
+            return "no value provided";
+        case no_valid_handler:
+            return "no valid handler";
+        case end_of_args:
+            return "end of args";
+        case out_of_range:
+            return "value out of range";
+        case cannot_parse:
+            return "cannot parse argument value";
+        }
+    }
+    template <typename ParserContext> constexpr auto parse (ParserContext &ctx)
+    {
+        return ctx.begin();
+    }
+
+    template <typename FormatContext>
+    auto format (const ngg::targ::arg_error &err, FormatContext &ctx) const
+    {
+        if (auto name = arg_error_to_string(err); !name.empty())
+        {
+            return std::format_to(ctx.out(), "{}", name);
+        }
+        using U = std::underlying_type_t<ngg::targ::arg_error>;
+        return std::format_to(ctx.out(), "{}", static_cast<U>(err));
+    }
+};
