@@ -4,7 +4,6 @@
 #include <array>
 #include <cassert>
 #include <expected>
-#include <print>
 #include <string_view>
 #include <tuple>
 #include <type_traits>
@@ -143,9 +142,6 @@ template <definition_instance... Definitions> struct match_table
             {
                 return filled_array<typename D::expected, D::consume_amount>(
                     std::unexpected(arg_error::no_value_provided));
-                // return element_t<D>{
-                //     std::array<typename D::expected, D::consume_amount>{
-                //         std::unexpected(arg_error::no_value_provided)}};
             }
         };
         auto results = std::tuple<element_t<Definitions>...>{
@@ -201,7 +197,8 @@ template <definition_instance... Definitions> struct match_table
             }
             if constexpr (N > 1)
             {
-                std::array<typename definition_type::expected, N> ret = {};
+                auto ret = filled_array<typename definition_type::expected, N>(
+                    std::unexpected(arg_error::no_value_provided));
                 for (size_t idx = 0; idx < N; idx++)
                 {
                     auto handler = std::get<I>(handlers);
@@ -230,11 +227,6 @@ template <definition_instance... Definitions> struct match_table
                             continue;
                         }
                     }
-                }
-                for (const auto &it : ret)
-                {
-                    if (it)
-                        std::println("ret : {}", *it);
                 }
                 slot = std::move(ret);
             }
