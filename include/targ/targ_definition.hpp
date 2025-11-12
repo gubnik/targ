@@ -20,6 +20,7 @@ enum class arg_error
     out_of_range,
     cannot_parse,
 };
+
 template <typename Tval, size_t ConsumeN, arg_handler_invokable<Tval> Thandler,
           size_t NamesSize>
 struct definition
@@ -105,6 +106,7 @@ template <> struct std::formatter<ngg::targ::arg_error, char>
         case cannot_parse:
             return "cannot parse argument value";
         }
+        return "unknown";
     }
     template <typename ParserContext> constexpr auto parse (ParserContext &ctx)
     {

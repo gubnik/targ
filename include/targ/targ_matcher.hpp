@@ -124,7 +124,7 @@ template <definition_instance... Definitions> struct match_table
                            multiarg<D, D::consume_amount>>>;
 
     [[nodiscard]]
-    constexpr auto match_all (int argc, char **argv) const noexcept
+    constexpr auto match_all (size_t argc, char **argv) const noexcept
         -> std::tuple<element_t<Definitions>...>
     {
         constexpr auto res_f = []<typename D>() -> element_t<D>
@@ -154,7 +154,6 @@ template <definition_instance... Definitions> struct match_table
                 std::tuple_element_t<I, std::tuple<Definitions...>>;
             constexpr size_t N = definition_type::consume_amount;
             const std::string_view arg{argv[i]};
-            const size_t start_idx  = i;
             result_type &slot       = std::get<I>(results);
             auto does_match_any_arg = match<I>(arg);
             if (!does_match_any_arg)

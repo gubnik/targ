@@ -11,6 +11,7 @@ template <>
 constexpr auto handle_arg<bool>(std::string_view arg_str) noexcept
     -> std::optional<bool>
 {
+    (void)arg_str; // unused
     return true;
 }
 
