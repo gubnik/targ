@@ -5,7 +5,6 @@ project(targ LANGUAGES CXX)
 set(TARG_VERSION 0.1.0)
 set(TARG_INCLUDE_DIR include)
 
-
 set(CMAKE_CXX_STANDARD 23)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
@@ -29,7 +28,8 @@ if(BUILD_EXAMPLES)
   foreach(example ${EXAMPLE_SRCS})
     get_filename_component(name ${example} NAME_WE)
     add_executable(${name} ${example})
-    target_link_libraries(${name} PRIVATE targ)
+    target_include_directories(${name} PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/include)
+    #target_link_libraries(${name} PRIVATE targ)
     # enable warnings for examples
     target_compile_options(${name} PRIVATE
       $<$<CXX_COMPILER_ID:GNU>:-Wall -Wextra>
