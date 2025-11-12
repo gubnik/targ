@@ -15,13 +15,13 @@ namespace ngg::targ
 template <definition_instance Def, size_t N> struct multiarg
 {
     using value_type = typename Def::value_type;
+    using inner_type = std::array<typename Def::expected, N>;
     struct enumerated
     {
         typename Def::expected expected;
         size_t idx;
     };
 
-    using inner_type = std::array<typename Def::expected, N>;
     constexpr multiarg (inner_type &&vals) noexcept : values(vals)
     {
     }
@@ -134,13 +134,14 @@ template <definition_instance... Definitions> struct match_table
             }
             else if constexpr (D::consume_amount == 1)
             {
-                return element_t<D>{
-                    std::unexpected(arg_error::no_value_provided)};
+                return element_t<D>{std::unexpected(
+                    arg_error{arg_error_tag::no_value_provided, ""})};
             }
             else
             {
                 return filled_array<typename D::expected, D::consume_amount>(
-                    std::unexpected(arg_error::no_value_provided));
+                    std::unexpected(
+                        arg_error{arg_error_tag::no_value_provided, ""}));
             }
         };
         auto results = std::tuple<element_t<Definitions>...>{
@@ -169,12 +170,14 @@ template <definition_instance... Definitions> struct match_table
                 auto handler = std::get<I>(handlers);
                 if (i + 1 >= argc)
                 {
-                    slot = std::unexpected(arg_error::end_of_args);
+                    slot = std::unexpected(
+                        arg_error{arg_error_tag::end_of_args, arg});
                     return;
                 }
                 if constexpr (std::is_same_v<decltype(handler), nullhandler_t>)
                 {
-                    slot = std::unexpected(arg_error::no_valid_handler);
+                    slot = std::unexpected(
+                        arg_error{arg_error_tag::no_valid_handler, ""});
                     return;
                 }
                 else
@@ -183,7 +186,8 @@ template <definition_instance... Definitions> struct match_table
                     const std::string_view next{argv[++i]};
                     if (auto opt_val = handler(next); !opt_val)
                     {
-                        slot = std::unexpected(arg_error::cannot_parse);
+                        slot = std::unexpected(
+                            arg_error{arg_error_tag::cannot_parse, next});
                         return;
                     }
                     else
@@ -196,19 +200,22 @@ template <definition_instance... Definitions> struct match_table
             if constexpr (N > 1)
             {
                 auto ret = filled_array<typename definition_type::expected, N>(
-                    std::unexpected(arg_error::no_value_provided));
+                    std::unexpected(
+                        arg_error{arg_error_tag::no_value_provided, ""}));
                 for (size_t idx = 0; idx < N; idx++)
                 {
                     auto handler = std::get<I>(handlers);
                     if (i + 1 >= argc)
                     {
-                        ret[idx] = std::unexpected(arg_error::end_of_args);
+                        ret[idx] = std::unexpected(
+                            arg_error{arg_error_tag::end_of_args, arg});
                         continue;
                     }
                     if constexpr (std::is_same_v<decltype(handler),
                                                  nullhandler_t>)
                     {
-                        ret[idx] = std::unexpected(arg_error::no_valid_handler);
+                        ret[idx] = std::unexpected(
+                            arg_error{arg_error_tag::no_valid_handler, ""});
                         continue;
                     }
                     else
@@ -216,7 +223,8 @@ template <definition_instance... Definitions> struct match_table
                         const std::string_view next{argv[++i]};
                         if (auto opt_val = handler(next); !opt_val)
                         {
-                            ret[idx] = std::unexpected(arg_error::cannot_parse);
+                            ret[idx] = std::unexpected(
+                                arg_error{arg_error_tag::cannot_parse, next});
                             continue;
                         }
                         else

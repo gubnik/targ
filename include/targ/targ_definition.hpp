@@ -13,13 +13,19 @@
 namespace ngg::targ
 {
 
-enum class arg_error
+enum class arg_error_tag
 {
     no_value_provided,
     no_valid_handler,
     end_of_args,
     out_of_range,
     cannot_parse,
+};
+
+struct arg_error
+{
+    arg_error_tag tag;
+    std::string_view argument_view;
 };
 
 template <typename Tval, size_t ConsumeN, arg_handler_invokable<Tval> Thandler,
@@ -99,14 +105,15 @@ concept definition_instance = is_definition_v<T>;
 
 } // namespace ngg::targ
 
-template <> struct std::formatter<ngg::targ::arg_error, char>
+template <> struct std::formatter<ngg::targ::arg_error_tag, char>
 {
     static constexpr auto
-    arg_error_to_string (ngg::targ::arg_error err) noexcept -> std::string_view
+    arg_error_to_string (ngg::targ::arg_error_tag err) noexcept
+        -> std::string_view
     {
         switch (err)
         {
-            using enum ngg::targ::arg_error;
+            using enum ngg::targ::arg_error_tag;
         case no_value_provided:
             return "no value provided";
         case no_valid_handler:
@@ -126,13 +133,56 @@ template <> struct std::formatter<ngg::targ::arg_error, char>
     }
 
     template <typename FormatContext>
-    auto format (const ngg::targ::arg_error &err, FormatContext &ctx) const
+    auto format (const ngg::targ::arg_error_tag &err, FormatContext &ctx) const
     {
         if (auto name = arg_error_to_string(err); !name.empty())
         {
             return std::format_to(ctx.out(), "{}", name);
         }
-        using U = std::underlying_type_t<ngg::targ::arg_error>;
+        using U = std::underlying_type_t<ngg::targ::arg_error_tag>;
         return std::format_to(ctx.out(), "{}", static_cast<U>(err));
+    }
+};
+
+template <> struct std::formatter<ngg::targ::arg_error, char>
+{
+    static constexpr auto
+    arg_error_to_string (ngg::targ::arg_error err) noexcept -> std::string_view
+    {
+        switch (err.tag)
+        {
+            using enum ngg::targ::arg_error_tag;
+        case no_value_provided:
+            return "no value provided";
+        case no_valid_handler:
+            return "no valid handler";
+        case end_of_args:
+            return "end of args";
+        case out_of_range:
+            return "value out of range";
+        case cannot_parse:
+            return "cannot parse argument value";
+        }
+        return "unknown";
+    }
+
+    template <typename ParserContext> constexpr auto parse (ParserContext &ctx)
+    {
+        return ctx.begin();
+    }
+
+    template <typename FormatContext>
+    auto format (const ngg::targ::arg_error &err, FormatContext &ctx) const
+    {
+        if (auto name = arg_error_to_string(err); !name.empty())
+        {
+            if (err.argument_view.empty())
+            {
+                return std::format_to(ctx.out(), "{}", name);
+            }
+            return std::format_to(ctx.out(), "{}: {}", name, err.argument_view);
+        }
+        using U = std::underlying_type_t<ngg::targ::arg_error_tag>;
+        return std::format_to(ctx.out(), "{}", static_cast<U>(err.tag));
     }
 };
