@@ -102,7 +102,9 @@ template <definition_instance... Definitions> struct match_table
     constexpr auto match (std::string_view sv) const noexcept -> bool
     {
         const auto &curr_names = std::get<I>(names);
-        return Definitions...[I] ::match(sv, curr_names);
+        using definition_type =
+            std::tuple_element_t<I, std::tuple<Definitions...>>;
+        return definition_type::match(sv, curr_names);
     }
 
     template <typename Tval, size_t N>
