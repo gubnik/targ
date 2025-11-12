@@ -38,12 +38,14 @@ struct fnv1a_hash
     }
 };
 
-template <size_t len, typename HashFunc = fnv1a_hash> struct hash_literal
+template <typename HashFunc = fnv1a_hash> struct hash_literal
 {
     static_assert(!hash_function<HashFunc>, "not a valid hash fucntion");
-    consteval hash_literal (const char (&str)[len]) noexcept
+    template <std::convertible_to<std::string_view> T>
+    consteval hash_literal(T &&str) noexcept
     {
-        hash = hash_func(str);
+        std::string_view sv(std::forward<T>(str));
+        hash = hash_func(sv.data());
     }
 
     consteval operator size_t ()

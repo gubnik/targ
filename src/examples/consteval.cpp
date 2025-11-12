@@ -1,7 +1,7 @@
+#include "targ/targ_default_handlers.hpp"
+#include "targ/targ_definition.hpp"
+#include "targ/targ_matcher.hpp"
 #include <print>
-#include <targ/targ_default_handlers.hpp>
-#include <targ/targ_definition.hpp>
-#include <targ/targ_matcher.hpp>
 
 namespace targ = ngg::targ;
 struct test_handler
@@ -19,7 +19,7 @@ auto main (int argc, char **argv) -> int
 {
     constexpr auto def1   = targ::define_value<size_t, 2>("test");
     constexpr auto def2   = targ::define_value<size_t>("abc");
-    constexpr auto def3   = targ::define_flag<char>("num", "n");
+    constexpr auto def3   = targ::define_flag("num", "n");
     constexpr auto mtable = ngg::targ::match_table(def1, def2, def3);
     auto [arr1, n2, n3]   = mtable.match_all(argc, argv);
     for (const auto &[n, idx] : arr1)

@@ -1,6 +1,7 @@
 #pragma once
 
 #include "targ_handler.hpp"
+#include "targ_hash_literal.hpp"
 #include <array>
 #include <concepts>
 #include <expected>
@@ -28,14 +29,26 @@ struct definition
     static constexpr size_t consume_amount = ConsumeN;
     using value_type                       = Tval;
     using handler_type                     = Thandler;
-    using names_type = std::array<std::string_view, NamesSize>;
-    using expected   = std::expected<Tval, arg_error>;
+    using hash_type                        = hash_literal<>;
+    using names_type                       = std::array<hash_type, NamesSize>;
+    using expected                         = std::expected<Tval, arg_error>;
 
     consteval definition (Thandler handler,
                           std::convertible_to<std::string_view> auto &&...names)
-        : arg_names({{std::forward<decltype(names)>(names)...}}),
+        : arg_names({hash_type{std::forward<decltype(names)>(names)}...}),
           handler(std::forward<Thandler>(handler))
     {
+    }
+
+    static constexpr auto match (std::string_view view,
+                                 const names_type &arg_names) noexcept
+    {
+        for (const auto &it : arg_names)
+        {
+            if (it == view)
+                return true;
+        }
+        return false;
     }
 
     const names_type arg_names;
@@ -46,7 +59,7 @@ template <typename Tval, size_t N = 1>
 consteval auto
 define_value (arg_handler_invokable<Tval> auto handler,
               std::convertible_to<std::string_view> auto &&...names)
-    requires(!std::is_same_v<decltype(handler), nullhandler_t>)
+    requires(N > 0 && !std::is_same_v<decltype(handler), nullhandler_t>)
 {
     return definition<Tval, N, decltype(handler), sizeof...(names)>(
         std::forward<decltype(handler)>(handler),
@@ -61,11 +74,10 @@ define_value (std::convertible_to<std::string_view> auto &&...names)
         handler<Tval>{}, std::forward<decltype(names)>(names)...);
 }
 
-template <typename Tval>
 consteval auto
 define_flag (std::convertible_to<std::string_view> auto &&...names)
 {
-    return definition<Tval, 0, nullhandler_t, sizeof...(names)>(
+    return definition<bool, 0, nullhandler_t, sizeof...(names)>(
         nullhandler, std::forward<decltype(names)>(names)...);
 }
 
