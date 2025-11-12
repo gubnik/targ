@@ -1,5 +1,6 @@
 #include <print>
 #include <targ/targ_default_handlers.hpp>
+#include <targ/targ_definition.hpp>
 #include <targ/targ_matcher.hpp>
 
 namespace targ = ngg::targ;
