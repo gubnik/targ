@@ -63,7 +63,16 @@ and are exposed in a `<targ/targ_default_handlers.hpp>` header.
 
 ## Multiple values
 
-For definitions which expect more than one value, the return type is a wrapper around std::array,
+For definitions which expect more than one value, the return type is a wrapper around std::array
 guaranteed to be:
-1. Convertible to bool: when converted, return `true` if there is any value to be extracted, `false` otherwise
-2. Iteratable via an input iterator
+1. Convertible to bool; when converted, return `true` if there is any value to be extracted, `false` otherwise
+2. Iteratable via an input iterator; iterating performs move of the initial elements on dereference
+
+Polymorphic multivalued options are not supported and will not ever be supported,
+use custom handlers to provide this kind of behaviour.
+
+# Plans for future
+- Support lazy semantics for parsing arguments (arguments are matched but are not parsed until requested)
+- Support easy handling of composite one-char flags (`-f -n` is equivalent to `-fn`)
+- Support for repetition policies; current behaviour is to use the latest value
+- Support for bootstrapped `help` option
